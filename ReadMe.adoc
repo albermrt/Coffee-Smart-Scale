@@ -1,0 +1,49 @@
+:Author: albert_mrt
+:Email: albert.mrt@gmail.com
+:Date: 19/11/2020
+:Revision: version#0
+:License: GNU
+
+= Project: Coffee Smart Scale
+
+
+== Step 1: Installation
+
+TBD
+
+== Step 2: Assemble the circuit
+
+Assemble the circuit following the diagram layout.png attached to the sketch (TBD)
+
+== Step 3: Load the code
+
+Upload the code contained in this sketch on to your board
+
+=== Folder structure
+
+....
+ Coffee_Smart_Scale      		=> Arduino sketch folder
+  ├── Coffee_Smart_Scale.ino      => main Arduino file
+  ├── schematics.png      	=> TBD
+  ├── layout.png          	=> TBD
+  └── ReadMe.adoc         	=> this file
+....
+
+=== License
+This project is released under a GNU License.
+
+=== Contributing
+To contribute to this project please contact albert_mrt https://id.arduino.cc/albert_mrt
+
+=== BOM
+
+|==============================================
+| ID | Part name      | Part number | Quantity
+| XX | XXX	     | 1234-abcd   | 10
+|==============================================
+
+
+=== Help
+This document is written in the _AsciiDoc_ format, a markup language to describe documents.
+If you need help you can search the http://www.methods.co.nz/asciidoc[AsciiDoc homepage]
+or consult the http://powerman.name/doc/asciidoc[AsciiDoc cheatsheet]

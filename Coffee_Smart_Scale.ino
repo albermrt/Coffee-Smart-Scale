@@ -5,7 +5,7 @@
  This project intended to create a smart scale capable of support pour-over and espresso techniques by automating
  some parameters like time start/stop and pour ratio, giving feedback of the results to support custom recipies.
  
- This code is open source
+ This code is under GNU v3.0 License
 
  by Alberto Martín
  
@@ -26,7 +26,7 @@
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);     //LCD Object in route 0x27, 20 colums by 4 rows
 
-HX711 scale;                            //sclae object
+HX711 scale;                            //scale object
 
 /*****************************************************************************************************************
                                         CONSTANTS
@@ -53,7 +53,7 @@ float timer = 0;      //contains de time at any moment when the timer is on
 int st = 0;           // absolute start time for timer
 int pushvalue = 0;    // button 1 state
 int pushvalue2 = 0;   // button 2 state
-int pushmode=0;
+int pushmode=0;       // button state for mode sitching
 
 /*****************************************************************************************************************
                                        FUNCTIONS
@@ -82,7 +82,7 @@ void tare_if(){                           // Reset al values to 0 IF botton 1 is
   }
 }
 
-void timerf(){                            //start a precise timer (0.25 sec every iteration)
+void timerf(){                            //start a timer (0.25 sec every iteration)
   while ((now-before)<250) 
     {
     now=millis()-st;

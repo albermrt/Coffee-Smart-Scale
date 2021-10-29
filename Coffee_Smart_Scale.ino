@@ -53,17 +53,19 @@ float timer = 0;      //contains de time at any moment when the timer is on
 int st = 0;           // absolute start time for timer
 int pushvalue = 0;    // button 1 state
 int pushvalue2 = 0;   // button 2 state
-int pushmode=0;       // button state for mode sitching
 
 /*****************************************************************************************************************
                                        FUNCTIONS
 ******************************************************************************************************************/
 
-void displaylcd(){                        //show info in display
-  lcd.setCursor(1, 0);
+void weightlcd(){                       //show weight in the display
+  lcd.setCursor(1,0);
   lcd.print(scale.get_units(), 1);
-  lcd.setCursor(5, 0);
+  lcd.setCursor(6,0);
   lcd.print("g");
+}
+
+void timelcd(){                        //show time in display
   lcd.setCursor(12, 0);
   lcd.print(timer,0);
   lcd.setCursor(16, 0);
@@ -71,7 +73,6 @@ void displaylcd(){                        //show info in display
 }
 
 void tare_if(){                           // Reset al values to 0 IF botton 1 is pushed
-  pushvalue = pushbutton_1();
   if (pushvalue == 2) {
     timer = 0;
     st = 0;
@@ -92,30 +93,44 @@ void timerf(){                            //start a timer (0.25 sec every iterat
 }
 
 int pushbutton_1()                        //Return 0, 1 or 2 if there is a none, short or long push (TO BE TESTED)
-{	
-	int x=0;
-	int button1now;
-	float buttontimer1;
-	button1now = digitalRead(pushpin);
-	if (button1now==LOW)
-	{
-		buttontimer1 = millis();
-		while (button1now==LOW){
-			button1now = digitalRead(pushpin);
-			delay(50);
-		}
-		buttontimer1 = millis() - buttontimer1;
-		if (buttontimer1>1000)
-		{
-			x=2;
-		}
-		if (buttontimer1> 50 and buttontimer1 < 1000)
-		{
-			x=1;
-		}
-	}
-	Serial.print(x);
-	return x;
+{  
+  int x=0;
+  int button1now;
+  float buttontimer1;
+  button1now = digitalRead(pushpin);
+  if (button1now==LOW)
+  {
+    buttontimer1 = millis();
+    while (button1now==LOW){
+      button1now = digitalRead(pushpin);
+      delay(50);
+    }
+    buttontimer1 = millis() - buttontimer1;
+    if (buttontimer1>1000)
+    {
+      x=2;
+    }
+    if (buttontimer1> 50 and buttontimer1 < 1000)
+    {
+      x=1;
+    }
+  }
+  Serial.print(x);
+  return x;
+}
+
+void modeselect (){
+  if (pushvalue==1)
+  {
+    if (mode < 4)
+    {
+      mode++;
+    }
+    else
+    {
+      mode = 1;
+    }
+   }
 }
 
 /*****************************************************************************************************************
@@ -142,63 +157,63 @@ void setup() {
   lcd.print("READY!");
   delay(1000);
   lcd.clear();
-  displaylcd();
-}
+  }
 
 void loop() {
   
+    
   lcd.setCursor(0, 2);
   lcd.print(mode);
-  
-  //-------MODE SELECTOR---------//
-  
-  pushmode=pushbutton_1();
-  if (pushmode==1)
-  {
-    if (mode < 4)
-    {
-      mode++;
-    }
-    else
-    {
-      mode = 1;
-    }
-    pushmode = 0;
-  }
-
-  //---------MODE SWITCH-------------//
 
   switch (mode)
   {
     case 1:       //==== REGULAR SCALE ====//
     
-      displaylcd();
+      weightlcd();
+      pushvalue = pushbutton_1();
+      modeselect();
       tare_if();
-      
       break;
+      
     case 2:       //==== MANUAL TIMER ====//
 
-      //TBD
-      
+      weightlcd();
+      timelcd();
+      pushvalue = pushbutton_1();
+      modeselect();
+      tare_if();
+      //start and stop timer code TBD
       break;
+      
     case 3:       //==== AUTO TIMER ====//
 
+      weightlcd();
+      timelcd();
+      
       if (scale.get_units()>1 and scale.get_units()<6)   // Auto start timer when the weight detected is between certain values
       {
         st = millis();
+        pushvalue = 0;
         while (pushvalue == 0)
         {
           timerf();
-          displaylcd();
+          weightlcd();
+          timelcd();
+          pushvalue = pushbutton_1();
+          modeselect();
           tare_if();
         }
       } 
-
-      break;      
+      break;
+            
     case 4:       //==== POUR-OVER RECIPE ====//
 
-      //TBD
-      
+      weightlcd();
+      timelcd();
+      pushvalue = pushbutton_1();
+      modeselect();
+      tare_if();
+      //start recipe code TBD
       break;
   }
 

@@ -166,21 +166,40 @@ void loop() {
     pushmode = 0;
   }
 
-  //---------AUTO START TIMER --------//
-  
-  if (scale.get_units()>1 and scale.get_units()<6)   // Auto start timer when the weight detected is between certain values
+  //---------MODE SWITCH-------------//
+
+  switch (mode)
   {
-    st = millis();
-    while (pushvalue == 0)
-    {
-      timerf();
+    case 1:       //==== REGULAR SCALE ====//
+    
       displaylcd();
       tare_if();
-    }
-  } 
+      
+      break;
+    case 2:       //==== MANUAL TIMER ====//
 
-  displaylcd();
+      //TBD
+      
+      break;
+    case 3:       //==== AUTO TIMER ====//
 
-  //tare_if();
+      if (scale.get_units()>1 and scale.get_units()<6)   // Auto start timer when the weight detected is between certain values
+      {
+        st = millis();
+        while (pushvalue == 0)
+        {
+          timerf();
+          displaylcd();
+          tare_if();
+        }
+      } 
+
+      break;      
+    case 4:       //==== POUR-OVER RECIPE ====//
+
+      //TBD
+      
+      break;
+  }
 
 }

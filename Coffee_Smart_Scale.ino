@@ -189,7 +189,9 @@ void loop() {
 
       weightlcd();
       timelcd();
-      
+      pushvalue = pushbutton_1();
+      modeselect();
+      tare_if();
       if (scale.get_units()>1 and scale.get_units()<6)   // Auto start timer when the weight detected is between certain values
       {
         st = millis();

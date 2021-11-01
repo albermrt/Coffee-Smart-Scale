@@ -47,11 +47,10 @@ const int pushpin2 = 5;       // Button 2
 ******************************************************************************************************************/
 
 int mode=1;           // Mode selection variable
-float now = 0;        //time at every moment used for timer function
-float before = 0;     //final moment used for timer function
-float timersec = 0;   //contains de time in seconds at any moment when the timer is on
-float timermin = 0;   //contains de time in minutes at any moment when the timer is on
-int st = 0;           // absolute start time for timer
+int timersec = 0.0; // contains de time in seconds at any moment when the timer is on
+float timermin = 0.0; // contains de time in minutes at any moment when the timer is on
+unsigned long st = 0; // absolute start time for timer
+int tms = 0;          // Intermediate variable for timer (ms)
 int pushvalue = 0;    // button 1 state
 int pushvalue2 = 0;   // button 2 state
 
@@ -83,7 +82,7 @@ void weightlcd(){                       //show weight in the display
 
 void timelcd(){                        //show time in display
   lcd.setCursor(12, 0);
-  lcd.print(timermin,0);
+  lcd.print(int(timermin));
   lcd.print(":");
   if (timersec<10)
   {
@@ -94,25 +93,22 @@ void timelcd(){                        //show time in display
 
 void tare_if(){                           // Reset al values to 0 IF botton 1 is pushed
   if (pushvalue == 2) {
-    timersec = 0;
+    timersec = 0.0;
     timermin = 0;
+    tms = 0;
     st = 0;
-    now= 0;
-    before = 0;
     scale.tare();
     lcd.clear();
   }
 }
 
-void timerf(){                            //start an accurate timer (0.25 sec every iteration)
-    timersec = (millis()-st)/1000 - (timermin*60);
-    if (timersec>59)
-    {
-      timermin++;
-    }
+void timerf(){                            //start an accurate timer
+    tms = int((millis()-st)/1000);
+    timermin = tms / 60;
+    timersec = tms - (int(timermin)*60);
 }
 
-int pushbutton_1()                        //Return 0, 1 or 2 if there is a none, short or long push (TO BE TESTED)
+int pushbutton_1()                        //Return 0, 1 or 2 if there is a none, short or long push 
 {  
   int x=0;
   int button1now;
@@ -212,7 +208,7 @@ void loop() {
       pushvalue = pushbutton_1();
       modeselect();
       tare_if();
-      if (scale.get_units()>1 and scale.get_units()<6)   // Auto start timer when the weight detected is between certain values
+      if (scale.get_units()>1 and scale.get_units()<10)   // Auto start timer when the weight detected is between certain values
       {
         st = millis();
         pushvalue = 0;

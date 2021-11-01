@@ -105,17 +105,11 @@ void tare_if(){                           // Reset al values to 0 IF botton 1 is
 }
 
 void timerf(){                            //start an accurate timer (0.25 sec every iteration)
-  while ((now-before)<250) 
-    {
-    now=millis()-st;
-    }
-    timersec = timersec + 0.25;
-    if (timersec>59.75)
+    timersec = (millis()-st)/1000 - (timermin*60);
+    if (timersec>59)
     {
       timermin++;
-      timersec=0;
-      }
-    before = now;
+    }
 }
 
 int pushbutton_1()                        //Return 0, 1 or 2 if there is a none, short or long push (TO BE TESTED)

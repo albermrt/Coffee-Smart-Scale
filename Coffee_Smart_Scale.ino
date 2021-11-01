@@ -49,7 +49,8 @@ const int pushpin2 = 5;       // Button 2
 int mode=1;           // Mode selection variable
 float now = 0;        //time at every moment used for timer function
 float before = 0;     //final moment used for timer function
-float timer = 0;      //contains de time at any moment when the timer is on
+float timersec = 0;   //contains de time in seconds at any moment when the timer is on
+float timermin = 0;   //contains de time in minutes at any moment when the timer is on
 int st = 0;           // absolute start time for timer
 int pushvalue = 0;    // button 1 state
 int pushvalue2 = 0;   // button 2 state
@@ -67,14 +68,19 @@ void weightlcd(){                       //show weight in the display
 
 void timelcd(){                        //show time in display
   lcd.setCursor(12, 0);
-  lcd.print(timer,0);
-  lcd.setCursor(16, 0);
-  lcd.print("sec");
+  lcd.print(timermin,0);
+  lcd.print(":");
+  if (timersec<10)
+  {
+    lcd.print("0");
+  }
+   lcd.print(int(timersec));
 }
 
 void tare_if(){                           // Reset al values to 0 IF botton 1 is pushed
   if (pushvalue == 2) {
-    timer = 0;
+    timersec = 0;
+    timermin = 0;
     st = 0;
     now= 0;
     before = 0;
@@ -83,12 +89,17 @@ void tare_if(){                           // Reset al values to 0 IF botton 1 is
   }
 }
 
-void timerf(){                            //start a timer (0.25 sec every iteration)
+void timerf(){                            //start an accurate timer (0.25 sec every iteration)
   while ((now-before)<250) 
     {
     now=millis()-st;
     }
-    timer = timer + 0.25;
+    timersec = timersec + 0.25;
+    if (timersec>59.75)
+    {
+      timermin++;
+      timersec=0;
+      }
     before = now;
 }
 

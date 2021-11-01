@@ -47,7 +47,7 @@ const int pushpin2 = 5;       // Button 2
 ******************************************************************************************************************/
 
 int mode=1;           // Mode selection variable
-int timersec = 0.0; // contains de time in seconds at any moment when the timer is on
+int timersec = 0.0;   // contains de time in seconds at any moment when the timer is on
 float timermin = 0.0; // contains de time in minutes at any moment when the timer is on
 unsigned long st = 0; // absolute start time for timer
 int tms = 0;          // Intermediate variable for timer (ms)
@@ -138,6 +138,7 @@ int pushbutton_1()                        //Return 0, 1 or 2 if there is a none,
 void modeselect (){
   if (pushvalue==1)
   {
+    lcd.clear();
     if (mode < 4)
     {
       mode++;
@@ -178,21 +179,15 @@ void setup() {
 void loop() {
   
     
-  lcd.setCursor(0, 2);
+  lcd.setCursor(0, 1);
+  lcd.print("Mode ");
   lcd.print(mode);
+  lcd.print(" - ");
 
   switch (mode)
   {
-    case 1:       //==== REGULAR SCALE ====//
-    
-      weightlcd();
-      pushvalue = pushbutton_1();
-      modeselect();
-      tare_if();
-      break;
-      
-    case 2:       //==== MANUAL TIMER ====//
-
+    case 1:       //==== MANUAL TIMER ====//
+      lcd.print("Manual");
       weightlcd();
       timelcd();
       pushvalue = pushbutton_1();
@@ -201,8 +196,8 @@ void loop() {
       //start and stop timer code TBD
       break;
       
-    case 3:       //==== AUTO TIMER ====//
-
+    case 2:       //==== ESPRESSO RECIPE ====//
+      lcd.print("Espresso!");
       weightlcd();
       timelcd();
       pushvalue = pushbutton_1();
@@ -223,9 +218,19 @@ void loop() {
         }
       } 
       break;
+      
+    case 3:       //==== POUR-OVER RECIPE ====//
+      lcd.print("Pour\\Over");
+      weightlcd();
+      timelcd();
+      pushvalue = pushbutton_1();
+      modeselect();
+      tare_if();
+      //start recipe code TBD
+      break;
             
-    case 4:       //==== POUR-OVER RECIPE ====//
-
+    case 4:       //==== FRENCH PRESS RECIPE ====//
+      lcd.print("Fr. Press");
       weightlcd();
       timelcd();
       pushvalue = pushbutton_1();

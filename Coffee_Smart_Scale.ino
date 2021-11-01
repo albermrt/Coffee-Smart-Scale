@@ -246,7 +246,7 @@ void loop() {
       pushvalue = pushbutton_1();
       modeselect();
       tare_if();
-      if (scale.get_units()>1 and scale.get_units()<10)   // Auto start timer when the weight detected is between certain values
+      if (scale.get_units()>1 and scale.get_units()<6)   // Auto start timer when the weight detected is between certain values
       {
         st = millis();
         pushvalue = 0;
@@ -269,7 +269,76 @@ void loop() {
       pushvalue = pushbutton_1();
       modeselect();
       tare_if();
-      //start recipe code TBD
+      lcd.setCursor(0,2);
+      lcd.print("Ready? Press B2");
+      pushvalue2 = digitalRead(pushpin2);
+      if (pushvalue2 == LOW)
+      {
+        scale.tare();                     // before the start of the recipe reset values to 0
+        lcd.setCursor(0,1);
+        lcd.print("                    ");
+        lcd.setCursor(0,2);
+        lcd.print("                    ");
+        while (scale.get_units()<17)
+        {
+          lcd.setCursor(0,2);
+          lcd.print("     Pour 18g of    ");
+          delay(750);
+          lcd.setCursor(0,3);
+          lcd.print(" Fresh Coffee Beans ");
+          weightlcd();
+          delay(250);
+        }
+        lcd.setCursor(0,2);
+        lcd.print("       GREAT!!      ");
+        lcd.setCursor(0,3);
+        lcd.print("                    ");
+        delay(2000);
+        lcd.setCursor(0,2);
+        lcd.print("Let's reset weight! ");
+        delay(2000);
+        lcd.setCursor(0,2);
+        lcd.print("Don't touch!!       ");
+        delay(750);
+        lcd.setCursor(0,3);
+        lcd.print("I'll do it!         ");
+        delay(750);
+        scale.tare();
+        weightlcd();
+        delay(2000);
+        lcd.setCursor(0,2);
+        lcd.print("Now pour 120g of hot");
+        lcd.setCursor(0,3);
+        lcd.print("water in 30 seconds ");
+        
+         
+        while (scale.get_units()<60)
+        {
+          if (scale.get_units()>1)   // Auto start timer when the weight detected is between certain values
+          {
+            st = millis();
+            while (scale.get_units()<250)
+            {
+              timerf();
+              weightlcd();
+              timelcd();
+              pushvalue = pushbutton_1();
+              modeselect();
+              tare_if();
+              if(scale.get_units()>115)
+              {
+                lcd.setCursor(0,2);
+                lcd.print("       GREAT!!      ");
+                lcd.setCursor(0,3);
+                lcd.print("                    ");
+
+              }
+              //CODE UNFINISHED - CONTINUE FROM HERE
+            }
+          } 
+        }
+      }
+      
       break;
             
     case 4:       //==== FRENCH PRESS RECIPE ====//

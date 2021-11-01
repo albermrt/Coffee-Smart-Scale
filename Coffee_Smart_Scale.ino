@@ -61,8 +61,23 @@ int pushvalue2 = 0;   // button 2 state
 
 void weightlcd(){                       //show weight in the display
   lcd.setCursor(1,0);
-  lcd.print(scale.get_units(), 1);
-  lcd.setCursor(6,0);
+  if (scale.get_units()<10)             // Right justify the number in the lcd
+  {
+    lcd.print("  ");
+  }
+  if (scale.get_units()>=10 and scale.get_units()<100)
+  {
+    lcd.print(" ");
+  }
+  if (scale.get_units()>=0.1)           // eliminate the values below 0.1g
+  {
+    lcd.print(scale.get_units(),1);  
+    lcd.print("   ");  
+  }else
+  {
+    lcd.print("0.0   ");
+  }
+  lcd.setCursor(7,0);
   lcd.print("g");
 }
 

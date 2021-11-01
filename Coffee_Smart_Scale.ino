@@ -135,6 +135,34 @@ int pushbutton_1()                        //Return 0, 1 or 2 if there is a none,
   return x;
 }
 
+int pushbutton_0()                        //Return 0 or 1 if there is none or short push 
+{  
+  int x=0;
+  int button1now;
+  float buttontimer1;
+  button1now = digitalRead(pushpin);
+  if (button1now==LOW)
+  {
+    buttontimer1 = millis();
+    while (button1now==LOW){
+      button1now = digitalRead(pushpin);
+      delay(50);
+    }
+    buttontimer1 = millis() - buttontimer1;
+    if (buttontimer1>1000)
+    {
+      x=2;
+    }
+    if (buttontimer1> 50 and buttontimer1 < 1000)
+    {
+      x=1;
+    }
+  }
+  Serial.print(x);
+  return x;
+}
+
+
 void modeselect (){
   if (pushvalue==1)
   {
@@ -157,6 +185,7 @@ void modeselect (){
 void setup() {
 
   pinMode(pushpin, INPUT_PULLUP);
+  pinMode(pushpin2, INPUT_PULLUP);
   lcd.init();                     // LCD Init
   lcd.backlight();                // LCD light turn on
 
@@ -190,11 +219,25 @@ void loop() {
       lcd.print("Manual");
       weightlcd();
       timelcd();
-      pushvalue = pushbutton_1();
+      pushvalue = pushbutton_0();
+      pushvalue2 = digitalRead(pushpin2);
       modeselect();
       tare_if();
-      //start and stop timer code TBD
-      break;
+      if (pushvalue2 == LOW)
+      {
+        st = millis(); 
+        pushvalue2 = HIGH;
+        while (pushvalue2 == HIGH)
+        {
+          timerf();
+          weightlcd();
+          timelcd();
+          pushvalue2 = digitalRead(pushpin2);
+          modeselect();
+          tare_if();
+        }
+      }
+    break;
       
     case 2:       //==== ESPRESSO RECIPE ====//
       lcd.print("Espresso!");
@@ -220,7 +263,7 @@ void loop() {
       break;
       
     case 3:       //==== POUR-OVER RECIPE ====//
-      lcd.print("Pour\\Over");
+      lcd.print("PourOver-V-");
       weightlcd();
       timelcd();
       pushvalue = pushbutton_1();

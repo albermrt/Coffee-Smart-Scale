@@ -168,7 +168,7 @@ void modeselect (){
   if (pushvalue==1)
   {
     lcd.clear();
-    if (mode < 4)
+    if (mode < 5)
     {
       mode++;
     }
@@ -239,15 +239,15 @@ void loop() {
         }
       }
     break;
-      
-    case 2:       //==== ESPRESSO RECIPE ====//
-      lcd.print("Espresso!");
+
+    case 2:       //==== AUTO TIMER ====//
+      lcd.print("Auto Start");
       weightlcd();
       timelcd();
       pushvalue = pushbutton_1();
       modeselect();
       tare_if();
-      if (scale.get_units()>1 and scale.get_units()<10)   // Auto start timer when the weight detected is between certain values
+      if (scale.get_units()>1)   // Auto start timer when the weight is detected
       {
         st = millis();
         pushvalue = 0;
@@ -261,17 +261,57 @@ void loop() {
           tare_if();
         }
       } 
+      break;  
+
+    case 3:       //==== ESPRESSO RECIPE ====//
+                /*Adaptation from the auto timer*/
+
+      lcd.print("Espresso!");
+      weightlcd();
+      timelcd();
+      pushvalue = pushbutton_1();
+      modeselect();
+      tare_if();
+      if (scale.get_units()>0.4 and scale.get_units()<4)   // More sensible Auto start timer when the weight is detected
+      {
+        st = millis() - 4000;                              // Adding some time for the pre-infusion                         
+        pushvalue = 0;
+        while (pushvalue == 0)
+        {
+          timerf();
+          weightlcd();
+          timelcd();
+          pushvalue = pushbutton_1();
+          modeselect();
+          tare_if();
+        }
+      } 
+      if (scale.get_units()>80)                             // Automatic tare when a glass is detected
+      {
+        weightlcd();
+        delay(500);
+        lcd.setCursor(0,3);
+        lcd.print("   Glass detected   ");
+        delay (1000);
+        lcd.setCursor(0,3);
+        lcd.print("        TARE        ");
+        scale.tare();
+        delay(100);
+        lcd.setCursor(0,3);
+        lcd.print("                    ");
+      }
+      
       break;
       
-    case 3:       //==== POUR-OVER V60 RECIPE ====//
+    case 4:       //==== POUR-OVER V60 RECIPE ====//
       lcd.print(" - V 6 0 -");
       weightlcd();
       timelcd();
       pushvalue = pushbutton_1();
       modeselect();
       tare_if();
-      lcd.setCursor(0,2);
-      lcd.print("Ready? Press B2");
+      lcd.setCursor(0,3);
+      lcd.print("  Ready? Press B2   ");
       pushvalue2 = digitalRead(pushpin2);
       if (pushvalue2 == LOW)
       {
@@ -284,7 +324,6 @@ void loop() {
         {
           lcd.setCursor(0,2);
           lcd.print("     Pour 15g of    ");
-          delay(750);
           lcd.setCursor(0,3);
           lcd.print("    Fresh Coffee    ");
           weightlcd();
@@ -332,7 +371,7 @@ void loop() {
         delay(750);
         lcd.setCursor(0,3);
         lcd.print("  And wait 40sec ");
-        while (tms<50)
+        while (tms<45)
         {
           timerf();
           weightlcd();
@@ -362,7 +401,7 @@ void loop() {
         lcd.setCursor(0,2);
         lcd.print("Now wait a little...");
         t1 = 0;
-        while (t1>10)                       // wait aprox 5 sec
+        while (t1<10)                       // wait aprox 5 sec
         {
           timerf();
           weightlcd();
@@ -396,7 +435,7 @@ void loop() {
         lcd.setCursor(0,3);
         lcd.print("drops completely    ");
         t1=0;
-        while (t1>10)                     // wait aprox 5 sec
+        while (t1<10)                     // wait aprox 5 sec
         {
           timerf();
           weightlcd();
@@ -424,7 +463,7 @@ void loop() {
       
       break;
             
-    case 4:       //==== FRENCH PRESS RECIPE ====//
+    case 5:       //==== FRENCH PRESS RECIPE ====//
       lcd.print("Fr. Press");
       weightlcd();
       timelcd();

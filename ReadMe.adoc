@@ -1,15 +1,31 @@
-:Author: albert_mrt
+:Author: Alberto Martín Ramos
 :Email: albert.mrt@gmail.com
 :Date: 19/11/2020
 :Revision: version#0
-:License: GNU
+:License: GNU (See license file)
 
 = Project: Coffee Smart Scale
+
+The aim of this project is to create a fully capable and fully configurable scale, focused in the coffee recipes. 
+The interphase and overall design should be minimal but powerful, even outperforming the commercial models in 
+some aspects as ease of use and configurable recipes. The objective is to produce a sleek product that performs 
+effortless and can be updated and upgraded. 
+
+This project is released under GNU license, so everyone is welcome to use the code for its own benefit or 
+contribute to the project.
+
+*Note from the developer: I’m not a trained software engineer, not having nothing close as a “good coding skills”, 
+I’m figuring out things as I encounter them. All the help or advice for making the code more efficient would be 
+greatly appreciated.
+
+Alberto M.
+01/08/2021
 
 
 == Step 1: Installation
 
-TBD
+So far, the project uses a regular load cell, a HX711 load cell amplifier, an LCD screen and two regular buttons.
+The enclosure have been made usig rapid prototyping 3D printer.
 
 == Step 2: Assemble the circuit
 
@@ -17,23 +33,24 @@ Assemble the circuit following the diagram layout.png attached to the sketch (TB
 
 == Step 3: Load the code
 
-Upload the code contained in this sketch on to your board
+Upload the code contained in this sketch on to your board. The code have been tested in the Arduino UNO and 
+Arduino Nano boards so far.
 
 === Folder structure
 
 ....
- Coffee_Smart_Scale      		=> Arduino sketch folder
+ Coffee_Smart_Scale      		      => Arduino sketch folder
   ├── Coffee_Smart_Scale.ino      => main Arduino file
-  ├── schematics.png      	=> TBD
-  ├── layout.png          	=> TBD
-  └── ReadMe.adoc         	=> this file
+  ├── schematics.png      	      => TBD
+  ├── layout.png          	      => TBD
+  └── ReadMe.adoc         	      => this file
 ....
 
 === License
 This project is released under a GNU License.
 
 === Contributing
-To contribute to this project please contact albert_mrt https://id.arduino.cc/albert_mrt
+To contribute to this project please contact me (albert.mrt@gmail.com)
 
 === BOM
 

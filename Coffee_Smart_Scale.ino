@@ -2,8 +2,9 @@
 
  COFFEE SMART SCALE
  
- This project intended to create a smart scale capable of support pour-over and espresso techniques by automating
- some parameters like time start/stop and pour ratio, giving feedback of the results to support custom recipies.
+ This project intended to create a smart scale capable of support pour-over, espresso and other coffee making techniques
+ by automating some parameters like start/stop time trigger and pour ratio, giving feedback of the results to support custom 
+ recipies.
  
  This code is under GNU v3.0 License
 
@@ -15,6 +16,7 @@
                                         LIBRARIES
 ******************************************************************************************************************/
 
+#include <EEPROM.h>                 //Load the AAPROM Lybrary
 #include "HX711.h"                  //Load cell amplifier library
 #include <LiquidCrystal_I2C.h>      //I2C LCD library
 
@@ -39,13 +41,15 @@ const byte pinData = 3;
 const byte pinClk = 2;
 
 //button inputs
-const int pushpin = 4;        // Button 1
-const int pushpin2 = 5;       // Button 2
+const int pushpin = 4;            // Button 1
+const int pushpin2 = 5;           // Button 2
+//const int modes = {1,2,3,4,5};  // Array of posible variables for mode
 
 /*****************************************************************************************************************
                                        VARIABLES
 ******************************************************************************************************************/
 
+         
 int mode=1;           // Mode selection variable
 int timersec = 0.0;   // contains de time in seconds at any moment when the timer is on
 float timermin = 0.0; // contains de time in minutes at any moment when the timer is on
@@ -109,7 +113,7 @@ void timerf(){                            //start an accurate timer
     timersec = tms - (int(timermin)*60);
 }
 
-int pushbutton_1()                        //Return 0, 1 or 2 if there is a none, short or long push 
+int pushbutton_1()                        //Return 0, 1 or 2 if there is a none, short or long push of the button 1
 {  
   int x=0;
   int button1now;
@@ -136,25 +140,25 @@ int pushbutton_1()                        //Return 0, 1 or 2 if there is a none,
   return x;
 }
 
-int pushbutton_0()                        //Return 0 or 1 if there is none or short push 
+int pushbutton_2()                        //Return 0, 1 or 2 if there is a none, short or long push of the button 2
 {  
   int x=0;
-  int button1now;
-  float buttontimer1;
-  button1now = digitalRead(pushpin);
-  if (button1now==LOW)
+  int button2now;
+  float buttontimer2;
+  button2now = digitalRead(pushpin2);
+  if (button2now==LOW)
   {
-    buttontimer1 = millis();
-    while (button1now==LOW){
-      button1now = digitalRead(pushpin);
+    buttontimer2 = millis();
+    while (button2now==LOW){
+      button2now = digitalRead(pushpin2);
       delay(50);
     }
-    buttontimer1 = millis() - buttontimer1;
-    if (buttontimer1>1000)
+    buttontimer2 = millis() - buttontimer2;
+    if (buttontimer2>1000)
     {
       x=2;
     }
-    if (buttontimer1> 50 and buttontimer1 < 1000)
+    if (buttontimer2> 50 and buttontimer2 < 1000)
     {
       x=1;
     }
@@ -179,6 +183,19 @@ void modeselect (){
    }
 }
 
+void modedefault (){              //update the default mode in the permanent memory
+  pushvalue2=pushbutton_2();
+  if (pushvalue2==2){
+    EEPROM.update(0,mode);
+    lcd.setCursor(0, 0);
+    lcd.print("DEFAULT MODE UPDATED");
+    delay(3000);
+    lcd.setCursor(0, 0);
+    lcd.print("                    ");
+  }
+
+}
+
 /*****************************************************************************************************************
                                        PROGRAM START
 ******************************************************************************************************************/
@@ -194,7 +211,17 @@ void setup() {
   // Iniciar comunicación serie
   Serial.begin(9600);
 #endif
+  
+  EEPROM.get(0,mode);         //read the position 0 of the EEPROM to find the stored value of the default mode
+  
 
+  if(mode < 1 or mode > 5){
+    mode=1;
+    lcd.setCursor(0, 0);                  
+    lcd.print("not in the list!!");
+    delay(3000);
+  }
+  
   scale.begin(pinData, pinClk);   // Set the Load cell communication pins
   scale.set_scale(CALIBRATION);   // Apply the calibration
   scale.tare();                   
@@ -220,20 +247,20 @@ void loop() {
       lcd.print("Manual");
       weightlcd();
       timelcd();
-      pushvalue = pushbutton_0();
-      pushvalue2 = digitalRead(pushpin2);
+      pushvalue = pushbutton_1();
       modeselect();
       tare_if();
-      if (pushvalue2 == LOW)
+      modedefault();
+      if (pushvalue2 == 1)
       {
         st = millis(); 
-        pushvalue2 = HIGH;
-        while (pushvalue2 == HIGH)
+        pushvalue2 = 0;
+        while (pushvalue2 == 0)
         {
           timerf();
           weightlcd();
           timelcd();
-          pushvalue2 = digitalRead(pushpin2);
+          pushvalue2 = pushbutton_2();
           modeselect();
           tare_if();
         }
@@ -247,6 +274,7 @@ void loop() {
       pushvalue = pushbutton_1();
       modeselect();
       tare_if();
+      modedefault();
       if (scale.get_units()>1)   // Auto start timer when the weight is detected
       {
         st = millis();
@@ -272,6 +300,7 @@ void loop() {
       pushvalue = pushbutton_1();
       modeselect();
       tare_if();
+      modedefault();
       if (scale.get_units()>0.4 and scale.get_units()<4)   // More sensible Auto start timer when the weight is detected
       {
         st = millis() - 4000;                              // Adding some time for the pre-infusion                         
@@ -310,23 +339,42 @@ void loop() {
       pushvalue = pushbutton_1();
       modeselect();
       tare_if();
+      modedefault();
       lcd.setCursor(0,3);
       lcd.print("  Ready? Press B2   ");
-      pushvalue2 = digitalRead(pushpin2);
-      if (pushvalue2 == LOW)
+      pushvalue2 = pushbutton_2();
+      if (pushvalue2 == 1)
       {
         scale.tare();                     // before the start of the recipe reset values to 0
-        lcd.setCursor(0,1);
-        lcd.print("                    ");
         lcd.setCursor(0,2);
         lcd.print("                    ");
+        lcd.setCursor(0,3);
+        lcd.print("                    ");
+        delay(500);
+        pushvalue2=pushbutton_2();
+        while (pushvalue2 != 1)           //wait for the initial preparation
+        {
+          lcd.setCursor(0,2);
+          lcd.print("  Wet the filer...  ");
+          lcd.setCursor(0,3);
+          lcd.print("  Ready? Press B2   ");
+          weightlcd();
+          pushvalue2=pushbutton_2();
+          pushvalue = pushbutton_1();
+          tare_if();
+          delay(250);
+        }
+        scale.tare();
+        weightlcd();
         while (scale.get_units()<17)
         {
           lcd.setCursor(0,2);
           lcd.print("     Pour 15g of    ");
           lcd.setCursor(0,3);
-          lcd.print("    Fresh Coffee    ");
+          lcd.print("Fresh Ground Coffee ");
           weightlcd();
+          pushvalue = pushbutton_1();
+          tare_if();
           delay(250);
         }
         lcd.setCursor(0,2);
@@ -354,6 +402,7 @@ void loop() {
         while (scale.get_units()<2)         //wait until the water is dropped
         {
           weightlcd();
+          tare_if();
           delay (250);
         }  
         st = millis();                      // Start the timer
@@ -470,8 +519,124 @@ void loop() {
       pushvalue = pushbutton_1();
       modeselect();
       tare_if();
-      //start recipe code TBD
+      modedefault();
+      lcd.setCursor(0,3);
+      lcd.print("  Ready? Press B2   ");
+      pushvalue2 = pushbutton_2();
+      if (pushvalue2 == 1)
+      {
+        scale.tare();                     // before the start of the recipe reset values to 0
+        lcd.setCursor(0,1);
+        lcd.print("                    ");
+        lcd.setCursor(0,2);
+        lcd.print("                    ");
+        while (scale.get_units()<17)
+        {
+          lcd.setCursor(0,2);
+          lcd.print("     Pour 15g of    ");
+          lcd.setCursor(0,3);
+          lcd.print("Fresh Ground Coffee ");
+          weightlcd();
+          delay(250);
+        }
+        lcd.setCursor(0,2);
+        lcd.print("       GREAT!!      ");
+        lcd.setCursor(0,3);
+        lcd.print("                    ");
+        delay(2000);
+        lcd.setCursor(0,2);
+        lcd.print("Let's reset weight! ");
+        delay(2000);
+        lcd.setCursor(0,2);
+        lcd.print("Don't touch!!       ");
+        delay(750);
+        lcd.setCursor(0,3);
+        lcd.print("I'll do it!         ");
+        delay(750);
+        scale.tare();
+        weightlcd();
+        delay(2000);
+        lcd.setCursor(0,2);
+        lcd.print("  Now pour 250g of  ");
+        lcd.setCursor(0,3);
+        lcd.print("     hot water     ");
+
+        while (scale.get_units()<10)         //wait until the water is dropped
+        {
+          weightlcd();
+          delay (250);
+        }  
+        st = millis();                      // Start the timer
+        while (scale.get_units()<240)      
+        {
+          timerf();
+          weightlcd();
+          timelcd();
+          pushvalue = pushbutton_1();
+          modeselect();
+          tare_if();
+        }
+        lcd.setCursor(0,2);
+        lcd.print("     DONE!!      ");
+        delay(750);
+        lcd.setCursor(0,3);
+        lcd.print("  Now wait 1 min ");
+        while (tms<60)
+        {
+          timerf();
+          weightlcd();
+          timelcd();
+          pushvalue = pushbutton_1();
+          modeselect();
+          tare_if();
+        }
+        lcd.setCursor(0,2);
+        lcd.print("Swirl and remove the");
+        lcd.setCursor(0,3);
+        lcd.print(" coffee in the top  ");
+
+        while (t1<10)                     // Wait 5 sec wile still showing the timer and weight
+        {
+          timerf();
+          weightlcd();
+          timelcd();
+          pushvalue = pushbutton_1();
+          modeselect();
+          tare_if();
+          delay(500);
+          t1++;
+        }
+        
+        lcd.setCursor(0,2);
+        lcd.print("     Wait 5 min     ");
+        lcd.setCursor(0,3);
+        lcd.print("                    ");
+        t1=0;
+        while (tms<360)                   //Wait 5 minutes
+        {
+          timerf();
+          weightlcd();
+          timelcd();
+          pushvalue = pushbutton_1();
+          modeselect();
+          tare_if();
+        }
+        lcd.setCursor(0,2);
+        lcd.print("        READY!      ");
+        lcd.setCursor(0,3);
+        lcd.print("Press tare to finish");
+        
+        while (tms>0)
+        {
+          timerf();
+          weightlcd();
+          timelcd();
+          pushvalue = pushbutton_1();
+          modeselect();
+          tare_if();
+        }
       break;
+    }
   }
 
 }

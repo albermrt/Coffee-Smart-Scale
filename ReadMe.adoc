@@ -25,7 +25,8 @@ Alberto M.
 == Step 1: Installation
 
 So far, the project uses a regular load cell, a HX711 load cell amplifier, an LCD screen and two regular buttons.
-The enclosure have been made usig rapid prototyping 3D printer.
+The enclosure have been made using rapid prototyping 3D printed parts. Future improvements could add some updates like
+using OLED screens and touch capacitive buttons to make the overall experience better.
 
 == Step 2: Assemble the circuit
 

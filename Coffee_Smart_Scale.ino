@@ -55,6 +55,7 @@ int timersec = 0.0;   // contains de time in seconds at any moment when the time
 float timermin = 0.0; // contains de time in minutes at any moment when the timer is on
 unsigned long st = 0; // absolute start time for timer
 int tms = 0;          // Intermediate variable for timer (ms)
+bool SStimer = false; //Start/Stop timer boolean
 int t1 = 0;
 int pushvalue = 0;    // button 1 state
 int pushvalue2 = 0;   // button 2 state
@@ -102,6 +103,7 @@ void tare_if(){                           // Reset al values to 0 IF botton 1 is
     timermin = 0;
     tms = 0;
     st = 0;
+    SStimer = false;
     scale.tare();
     lcd.clear();
   }
@@ -131,7 +133,7 @@ int pushbutton_1()                        //Return 0, 1 or 2 if there is a none,
     {
       x=2;
     }
-    if (buttontimer1> 50 and buttontimer1 < 1000)
+    if (buttontimer1> 25 and buttontimer1 < 1000)
     {
       x=1;
     }
@@ -158,7 +160,7 @@ int pushbutton_2()                        //Return 0, 1 or 2 if there is a none,
     {
       x=2;
     }
-    if (buttontimer2> 50 and buttontimer2 < 1000)
+    if (buttontimer2> 25 and buttontimer2 < 1000)
     {
       x=1;
     }
@@ -184,7 +186,6 @@ void modeselect (){
 }
 
 void modedefault (){              //update the default mode in the permanent memory
-  pushvalue2=pushbutton_2();
   if (pushvalue2==2){
     EEPROM.update(0,mode);
     lcd.setCursor(0, 0);
@@ -235,7 +236,13 @@ void setup() {
 
 void loop() {
   
-    
+  weightlcd();
+  timelcd();
+  pushvalue = pushbutton_1();
+  pushvalue2 = pushbutton_2();
+  modeselect();
+  tare_if();
+  modedefault();
   lcd.setCursor(0, 1);
   lcd.print("Mode ");
   lcd.print(mode);
@@ -245,76 +252,57 @@ void loop() {
   {
     case 1:       //==== MANUAL TIMER ====//
       lcd.print("Manual");
-      weightlcd();
-      timelcd();
-      pushvalue = pushbutton_1();
-      modeselect();
-      tare_if();
-      modedefault();
       if (pushvalue2 == 1)
       {
-        st = millis(); 
+        SStimer = !SStimer;
+        st = millis();
         pushvalue2 = 0;
-        while (pushvalue2 == 0)
-        {
-          timerf();
-          weightlcd();
-          timelcd();
-          pushvalue2 = pushbutton_2();
-          modeselect();
-          tare_if();
-        }
+      }
+      if (SStimer == true)
+      {
+        timerf();
       }
     break;
 
     case 2:       //==== AUTO TIMER ====//
       lcd.print("Auto Start");
-      weightlcd();
-      timelcd();
-      pushvalue = pushbutton_1();
-      modeselect();
-      tare_if();
-      modedefault();
-      if (scale.get_units()>1)   // Auto start timer when the weight is detected
+      lcd.setCursor(0, 3);
+      lcd.print("Press B2 to rst time");
+      if (scale.get_units()>1 and SStimer == false)   // Auto start timer when the weight is detected
       {
         st = millis();
-        pushvalue = 0;
-        while (pushvalue == 0)
-        {
-          timerf();
-          weightlcd();
-          timelcd();
-          pushvalue = pushbutton_1();
-          modeselect();
-          tare_if();
-        }
+        SStimer = true;
       } 
+      if (SStimer == true)
+      {
+        timerf();
+      }
+      if (pushvalue2==1)        // Reset the timer to 0 without touching the weight
+      {
+        pushvalue2=0;
+        st=millis();
+      }
       break;  
 
     case 3:       //==== ESPRESSO RECIPE ====//
                 /*Adaptation from the auto timer*/
 
       lcd.print("Espresso!");
-      weightlcd();
-      timelcd();
-      pushvalue = pushbutton_1();
-      modeselect();
-      tare_if();
-      modedefault();
-      if (scale.get_units()>0.4 and scale.get_units()<4)   // More sensible Auto start timer when the weight is detected
+      if (scale.get_units()>0.4 and scale.get_units()<4 and SStimer == false)   // Auto start timer when the weight is detected
       {
-        st = millis() - 4000;                              // Adding some time for the pre-infusion                         
-        pushvalue = 0;
-        while (pushvalue == 0)
-        {
-          timerf();
-          weightlcd();
-          timelcd();
-          pushvalue = pushbutton_1();
-          modeselect();
-          tare_if();
-        }
+        st = millis() - 4000;     // Adding some time for the pre-infusion
+        SStimer = true;
       } 
+      if (SStimer == true)        // timer on when SStimer variable true
+      {
+        timerf();
+      }
+      if (pushvalue2==1)        // Stop timer mannually above 4g
+      {
+        pushvalue2=0;
+        SStimer = false;
+      }
+
       if (scale.get_units()>80)                             // Automatic tare when a glass is detected
       {
         weightlcd();
@@ -334,15 +322,8 @@ void loop() {
       
     case 4:       //==== POUR-OVER V60 RECIPE ====//
       lcd.print(" - V 6 0 -");
-      weightlcd();
-      timelcd();
-      pushvalue = pushbutton_1();
-      modeselect();
-      tare_if();
-      modedefault();
       lcd.setCursor(0,3);
       lcd.print("  Ready? Press B2   ");
-      pushvalue2 = pushbutton_2();
       if (pushvalue2 == 1)
       {
         scale.tare();                     // before the start of the recipe reset values to 0
@@ -514,15 +495,8 @@ void loop() {
             
     case 5:       //==== FRENCH PRESS RECIPE ====//
       lcd.print("Fr. Press");
-      weightlcd();
-      timelcd();
-      pushvalue = pushbutton_1();
-      modeselect();
-      tare_if();
-      modedefault();
       lcd.setCursor(0,3);
       lcd.print("  Ready? Press B2   ");
-      pushvalue2 = pushbutton_2();
       if (pushvalue2 == 1)
       {
         scale.tare();                     // before the start of the recipe reset values to 0

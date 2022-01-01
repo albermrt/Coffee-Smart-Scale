@@ -51,12 +51,15 @@ const int pushpin2 = 5;           // Button 2
 
          
 int mode=1;           // Mode selection variable
+int step=0;           // step for the recipes
 int timersec = 0.0;   // contains de time in seconds at any moment when the timer is on
 float timermin = 0.0; // contains de time in minutes at any moment when the timer is on
 unsigned long st = 0; // absolute start time for timer
 int tms = 0;          // Intermediate variable for timer (ms)
 bool SStimer = false; //Start/Stop timer boolean
-int t1 = 0;
+bool TautoStop = false; //Auto stop flag for espresso timer
+unsigned long temp = 0;
+float weightbefore = 0; // Store the weight to compare to future values for auto stop the timer
 int pushvalue = 0;    // button 1 state
 int pushvalue2 = 0;   // button 2 state
 
@@ -104,6 +107,9 @@ void tare_if(){                           // Reset al values to 0 IF botton 1 is
     tms = 0;
     st = 0;
     SStimer = false;
+    TautoStop = false;
+    step=0;
+    temp=0;
     scale.tare();
     lcd.clear();
   }
@@ -201,7 +207,7 @@ void modedefault (){              //update the default mode in the permanent mem
                                        PROGRAM START
 ******************************************************************************************************************/
 
-void setup() {
+void setup() {               //========= SETUP ===========//
 
   pinMode(pushpin, INPUT_PULLUP);
   pinMode(pushpin2, INPUT_PULLUP);
@@ -216,11 +222,9 @@ void setup() {
   EEPROM.get(0,mode);         //read the position 0 of the EEPROM to find the stored value of the default mode
   
 
-  if(mode < 1 or mode > 5){
+  if(mode < 1 or mode > 5)
+  {
     mode=1;
-    lcd.setCursor(0, 0);                  
-    lcd.print("not in the list!!");
-    delay(3000);
   }
   
   scale.begin(pinData, pinClk);   // Set the Load cell communication pins
@@ -228,14 +232,12 @@ void setup() {
   scale.tare();                   
   delay(500);
   lcd.clear();
-  lcd.setCursor(7, 0);                  
-  lcd.print("READY!");
-  delay(1000);
-  lcd.clear();
   }
 
-void loop() {
+
+void loop() {               //========= LOOP ===========//
   
+  //*********** Common functions for all modes **********//
   weightlcd();
   timelcd();
   pushvalue = pushbutton_1();
@@ -244,15 +246,15 @@ void loop() {
   tare_if();
   modedefault();
   lcd.setCursor(0, 1);
-  lcd.print("Mode ");
-  lcd.print(mode);
-  lcd.print(" - ");
 
+  //********************* MODE SELECTOR ******************//
   switch (mode)
   {
-    case 1:       //==== MANUAL TIMER ====//
-      lcd.print("Manual");
-      if (pushvalue2 == 1)
+                                  //==== MANUAL TIMER ====//
+
+    case 1: 
+      lcd.print("Manual mode     ");
+      if (pushvalue2 == 1)              // Start/Stop timer when the B2 is pushed
       {
         SStimer = !SStimer;
         st = millis();
@@ -264,8 +266,10 @@ void loop() {
       }
     break;
 
-    case 2:       //==== AUTO TIMER ====//
-      lcd.print("Auto Start");
+                                    //==== AUTO TIMER ====//
+
+    case 2:       
+      lcd.print("Auto Timer mode     ");
       lcd.setCursor(0, 3);
       lcd.print("Press B2 to rst time");
       if (scale.get_units()>1 and SStimer == false)   // Auto start timer when the weight is detected
@@ -284,14 +288,20 @@ void loop() {
       }
       break;  
 
-    case 3:       //==== ESPRESSO RECIPE ====//
-                /*Adaptation from the auto timer*/
+                                      //==== ESPRESSO RECIPE ====//
 
-      lcd.print("Espresso!");
+    case 3:       
+                
+      lcd.print("Espresso mode   ");
+      lcd.setCursor(0, 2);
+      lcd.print("Avg. ratio =");
+      lcd.print(scale.get_units()/tms);
       if (scale.get_units()>0.4 and scale.get_units()<4 and SStimer == false)   // Auto start timer when the weight is detected
       {
         st = millis() - 4000;     // Adding some time for the pre-infusion
         SStimer = true;
+        temp=millis();
+        weightbefore=scale.get_units();
       } 
       if (SStimer == true)        // timer on when SStimer variable true
       {
@@ -301,6 +311,32 @@ void loop() {
       {
         pushvalue2=0;
         SStimer = false;
+      }
+
+      if(millis()-temp>1000 and SStimer==true)      // start a comparison every 1 sec after the timer starts
+      {
+        if(scale.get_units() - weightbefore < 0.5)    // if the weight have increase less than 0.5g in 1 sec stops the timer (shot end)
+        {
+          TautoStop=true;
+          if(scale.get_units()/tms>0.8 and scale.get_units()/tms<1.2)  // Evaluation of the ratio
+          {
+            lcd.setCursor(0,3);
+            lcd.print("   Good shot!!!   ");
+          }
+          else
+          {
+            lcd.setCursor(0,3);
+            lcd.print("   Poor shot...  ");
+          }
+        }
+        weightbefore=scale.get_units();     // reset the weight stored for next comparison
+        temp=millis();                      // reset the timer for weight comparison
+      }
+
+      if (SStimer==true and TautoStop==true)    // stop the timer is TautoStop is activated
+      {
+        SStimer=false;
+        TautoStop=false;
       }
 
       if (scale.get_units()>80)                             // Automatic tare when a glass is detected
@@ -319,296 +355,303 @@ void loop() {
       }
       
       break;
-      
-    case 4:       //==== POUR-OVER V60 RECIPE ====//
-      lcd.print(" - V 6 0 -");
-      lcd.setCursor(0,3);
-      lcd.print("  Ready? Press B2   ");
-      if (pushvalue2 == 1)
+
+                                  //==== POUR-OVER RECIPE ====//
+
+    case 4:       
+      lcd.print("Pour-Over Recipe  ");
+      if (SStimer == true)
       {
-        scale.tare();                     // before the start of the recipe reset values to 0
-        lcd.setCursor(0,2);
-        lcd.print("                    ");
-        lcd.setCursor(0,3);
-        lcd.print("                    ");
-        delay(500);
-        pushvalue2=pushbutton_2();
-        while (pushvalue2 != 1)           //wait for the initial preparation
+        timerf();
+      }  
+      if (pushvalue2 == 1) 
+      {
+        if (step < 13)
         {
+          step++;
+          pushvalue2=0;
+        }
+        else
+        {
+          step=0;
+        }
+      }
+      switch(step)
+      {
+        case 0:
+        lcd.setCursor(0,3);
+        lcd.print("  Ready? Press B2   ");
+        break;
+
+        case 1:
           lcd.setCursor(0,2);
           lcd.print("  Wet the filer...  ");
-          lcd.setCursor(0,3);
-          lcd.print("  Ready? Press B2   ");
-          weightlcd();
-          pushvalue2=pushbutton_2();
-          pushvalue = pushbutton_1();
-          tare_if();
-          delay(250);
-        }
-        scale.tare();
-        weightlcd();
-        while (scale.get_units()<17)
-        {
+        break;
+
+        case 2:
+          scale.tare();
+          step=3;
+        break;
+
+        case 3:
           lcd.setCursor(0,2);
           lcd.print("     Pour 15g of    ");
           lcd.setCursor(0,3);
           lcd.print("Fresh Ground Coffee ");
+          if (scale.get_units()>14)
+          {
+            step=4;
+          }
+        break;
+
+        case 4:
+          lcd.setCursor(0,2);
+          lcd.print("       GREAT!!      ");
+          lcd.setCursor(0,3);
+          lcd.print("                    ");
+          delay(1500);
+          lcd.setCursor(0,2);
+          lcd.print("Let's reset weight! ");
+          delay(1500);
+          lcd.setCursor(0,2);
+          lcd.print("Don't touch!!       ");
+          delay(750);
+          lcd.setCursor(0,3);
+          lcd.print("I'll do it!         ");
+          delay(750);
+          scale.tare();
           weightlcd();
-          pushvalue = pushbutton_1();
-          tare_if();
-          delay(250);
-        }
-        lcd.setCursor(0,2);
-        lcd.print("       GREAT!!      ");
-        lcd.setCursor(0,3);
-        lcd.print("                    ");
-        delay(2000);
-        lcd.setCursor(0,2);
-        lcd.print("Let's reset weight! ");
-        delay(2000);
-        lcd.setCursor(0,2);
-        lcd.print("Don't touch!!       ");
-        delay(750);
-        lcd.setCursor(0,3);
-        lcd.print("I'll do it!         ");
-        delay(750);
-        scale.tare();
-        weightlcd();
-        delay(2000);
-        lcd.setCursor(0,2);
-        lcd.print("  Now pour 40g of  ");
-        lcd.setCursor(0,3);
-        lcd.print("     hot water     ");
-         
-        while (scale.get_units()<2)         //wait until the water is dropped
-        {
-          weightlcd();
-          tare_if();
-          delay (250);
-        }  
-        st = millis();                      // Start the timer
-        while (scale.get_units()<39)      
-        {
-          timerf();
-          weightlcd();
-          timelcd();
-          pushvalue = pushbutton_1();
-          modeselect();
-          tare_if();
-        }
-        lcd.setCursor(0,2);
-        lcd.print("DONE!! Now swirl ");
-        delay(750);
-        lcd.setCursor(0,3);
-        lcd.print("  And wait 40sec ");
-        while (tms<45)
-        {
-          timerf();
-          weightlcd();
-          timelcd();
-          pushvalue = pushbutton_1();
-          modeselect();
-          tare_if();
-        }
-        lcd.setCursor(0,2);
-        lcd.print("Now pour until 150g ");
-        lcd.setCursor(0,3);
-        lcd.print("       of water     ");
-        while (scale.get_units()<149)      
-        {
-          timerf();
-          weightlcd();
-          timelcd();
-          pushvalue = pushbutton_1();
-          modeselect();
-          tare_if();
-        }
-        lcd.setCursor(0,2);
-        lcd.print("       DONE!!       ");
-        lcd.setCursor(0,3);
-        lcd.print("                    ");
-        delay (1000);
-        lcd.setCursor(0,2);
-        lcd.print("Now wait a little...");
-        t1 = 0;
-        while (t1<10)                       // wait aprox 5 sec
-        {
-          timerf();
-          weightlcd();
-          timelcd();
-          pushvalue = pushbutton_1();
-          modeselect();
-          tare_if();
-          delay(500);
-          t1++;
-        }
-        lcd.setCursor(0,2);
-        lcd.print("Now pour until 250g ");
-        lcd.setCursor(0,3);
-        lcd.print("of water in 30 sec  ");
-        while (scale.get_units()<249)      
-        {
-          timerf();
-          weightlcd();
-          timelcd();
-          pushvalue = pushbutton_1();
-          modeselect();
-          tare_if();
-        }
-        lcd.setCursor(0,2);
-        lcd.print("       GREAT!!      ");
-        lcd.setCursor(0,3);
-        lcd.print("                    ");
-        delay(1000);
-        lcd.setCursor(0,2);
-        lcd.print("Wait until the water");
-        lcd.setCursor(0,3);
-        lcd.print("drops completely    ");
-        t1=0;
-        while (t1<10)                     // wait aprox 5 sec
-        {
-          timerf();
-          weightlcd();
-          timelcd();
-          pushvalue = pushbutton_1();
-          modeselect();
-          tare_if();
-          delay(500);
-          t1++;
-        }
-        lcd.setCursor(0,2);
-        lcd.print(" ENJOY YOUR COFFEE! ");
-        lcd.setCursor(0,3);
-        lcd.print("Press tare to finish");
-        while (tms>0)
-        {
-          timerf();
-          weightlcd();
-          timelcd();
-          pushvalue = pushbutton_1();
-          modeselect();
-          tare_if();
-        }
+          delay(1500);
+          step=5;
+        break;
+
+        case 5:  
+          lcd.setCursor(0,2);
+          lcd.print("Bloom phase!  Pour ");
+          lcd.setCursor(0,3);
+          lcd.print(" 40g of hot water  ");
+          if(scale.get_units()>1 and SStimer == false)               //wait until the water is dropped
+          {
+            st = millis();                      // Start the timer
+            SStimer = true;
+          }
+          if (scale.get_units()>38)
+          {
+            step=6;
+          }
+        break;
+
+        case 6:
+          lcd.setCursor(0,2);
+          lcd.print("DONE!! Now swirl   ");
+          lcd.setCursor(0,3);
+          lcd.print("  And wait 40sec   ");
+          if (tms>40)
+          {
+            step=7;
+          }
+        break;
+
+        case 7:
+          lcd.setCursor(0,2);
+          lcd.print("Now pour until 150g ");
+          lcd.setCursor(0,3);
+          lcd.print("       of water     ");
+          if (scale.get_units()>148)
+          {
+            step=8;
+          }
+        break;
+
+        case 8:
+          lcd.setCursor(0,2);
+          lcd.print("       DONE!!       ");
+          lcd.setCursor(0,3);
+          lcd.print("                    ");
+          delay (1000);
+          lcd.setCursor(0,2);
+          lcd.print("Now wait a little...");
+          delay (1000);
+          lcd.setCursor(0,3);
+          lcd.print(" and swirl          ");
+          temp=millis();
+          step=9;
+        break;
+
+        case 9:  
+          if (millis()-temp > 5000)
+          {
+            step=10;
+          }
+        break;
+
+        case 10:
+          lcd.setCursor(0,2);
+          lcd.print("Now pour until 250g ");
+          lcd.setCursor(0,3);
+          lcd.print("of water in 30 sec  ");
+          if (scale.get_units()>248)
+          {
+            step=11;
+          }
+        break;
+
+        case 11:
+          lcd.setCursor(0,2);
+          lcd.print("Wait until the water");
+          lcd.setCursor(0,3);
+          lcd.print("drops completely    ");
+          step=12;
+          temp=millis();
+        break;
+
+        case 12:
+          if (millis()-temp > 10000)
+          {
+            step=13;
+          }
+        break;
+
+        case 13:
+          lcd.setCursor(0,2);
+          lcd.print(" ENJOY YOUR COFFEE! ");
+          lcd.setCursor(0,3);
+          lcd.print("Press tare to finish");
+        break;  
       }
       
       break;
-            
-    case 5:       //==== FRENCH PRESS RECIPE ====//
-      lcd.print("Fr. Press");
-      lcd.setCursor(0,3);
-      lcd.print("  Ready? Press B2   ");
-      if (pushvalue2 == 1)
+
+                              //==== FRENCH PRESS RECIPE ====//
+
+    case 5:       
+      lcd.print("Fr. Press Recipe");
+      if (SStimer == true)
       {
-        scale.tare();                     // before the start of the recipe reset values to 0
-        lcd.setCursor(0,1);
-        lcd.print("                    ");
-        lcd.setCursor(0,2);
-        lcd.print("                    ");
-        while (scale.get_units()<17)
+        timerf();
+      }  
+      if (pushvalue2 == 1) 
+      {
+        if (step < 13)
         {
+          step++;
+          pushvalue2=0;
+        }
+        else
+        {
+          step=0;
+        }
+      }
+      switch(step)
+      {
+        case 0:
+        lcd.setCursor(0,3);
+        lcd.print("  Ready? Press B2   ");
+        break;
+
+        case 1:
+          scale.tare();
+          step=2;
+        break;
+
+        case 2:
           lcd.setCursor(0,2);
           lcd.print("     Pour 15g of    ");
           lcd.setCursor(0,3);
           lcd.print("Fresh Ground Coffee ");
-          weightlcd();
-          delay(250);
-        }
-        lcd.setCursor(0,2);
-        lcd.print("       GREAT!!      ");
-        lcd.setCursor(0,3);
-        lcd.print("                    ");
-        delay(2000);
-        lcd.setCursor(0,2);
-        lcd.print("Let's reset weight! ");
-        delay(2000);
-        lcd.setCursor(0,2);
-        lcd.print("Don't touch!!       ");
-        delay(750);
-        lcd.setCursor(0,3);
-        lcd.print("I'll do it!         ");
-        delay(750);
-        scale.tare();
-        weightlcd();
-        delay(2000);
-        lcd.setCursor(0,2);
-        lcd.print("  Now pour 250g of  ");
-        lcd.setCursor(0,3);
-        lcd.print("     hot water     ");
+          if (scale.get_units()>14)
+          {
+            step=3;
+          }
+        break;
 
-        while (scale.get_units()<10)         //wait until the water is dropped
-        {
+        case 3:
+          lcd.setCursor(0,2);
+          lcd.print("       GREAT!!      ");
+          lcd.setCursor(0,3);
+          lcd.print("                    ");
+          delay(1500);
+          lcd.setCursor(0,2);
+          lcd.print("Let's reset weight! ");
+          delay(1500);
+          lcd.setCursor(0,2);
+          lcd.print("Don't touch!!       ");
+          delay(750);
+          lcd.setCursor(0,3);
+          lcd.print("I'll do it!         ");
+          delay(750);
+          scale.tare();
           weightlcd();
-          delay (250);
-        }  
-        st = millis();                      // Start the timer
-        while (scale.get_units()<240)      
-        {
-          timerf();
-          weightlcd();
-          timelcd();
-          pushvalue = pushbutton_1();
-          modeselect();
-          tare_if();
-        }
-        lcd.setCursor(0,2);
-        lcd.print("     DONE!!      ");
-        delay(750);
-        lcd.setCursor(0,3);
-        lcd.print("  Now wait 1 min ");
-        while (tms<60)
-        {
-          timerf();
-          weightlcd();
-          timelcd();
-          pushvalue = pushbutton_1();
-          modeselect();
-          tare_if();
-        }
-        lcd.setCursor(0,2);
-        lcd.print("Swirl and remove the");
-        lcd.setCursor(0,3);
-        lcd.print(" coffee in the top  ");
+          delay(1500);
+          step=4;
+        break;
 
-        while (t1<10)                     // Wait 5 sec wile still showing the timer and weight
-        {
-          timerf();
-          weightlcd();
-          timelcd();
-          pushvalue = pushbutton_1();
-          modeselect();
-          tare_if();
-          delay(500);
-          t1++;
-        }
-        
-        lcd.setCursor(0,2);
-        lcd.print("     Wait 5 min     ");
-        lcd.setCursor(0,3);
-        lcd.print("                    ");
-        t1=0;
-        while (tms<360)                   //Wait 5 minutes
-        {
-          timerf();
-          weightlcd();
-          timelcd();
-          pushvalue = pushbutton_1();
-          modeselect();
-          tare_if();
-        }
-        lcd.setCursor(0,2);
-        lcd.print("        READY!      ");
-        lcd.setCursor(0,3);
-        lcd.print("Press tare to finish");
-        
-        while (tms>0)
-        {
-          timerf();
-          weightlcd();
-          timelcd();
-          pushvalue = pushbutton_1();
-          modeselect();
-          tare_if();
-        }
+        case 4:
+          lcd.setCursor(0,2);
+          lcd.print("  Now pour 250g of  ");
+          lcd.setCursor(0,3);
+          lcd.print("     hot water     ");
+          if (scale.get_units()>4 and SStimer==false)
+          {
+            st=millis();
+            SStimer=true;
+          }
+          if (scale.get_units()>248)
+          {
+            step=5;
+          }
+        break;
+
+        case 5:
+          lcd.setCursor(0,2);
+          lcd.print("     DONE!!        ");
+          lcd.setCursor(0,3);
+          lcd.print("  Now wait 1 min   ");
+          if(tms>60)
+          {
+            step=6;
+          }
+        break;
+
+        case 6:
+          lcd.setCursor(0,2);
+          lcd.print("Swirl and remove the");
+          lcd.setCursor(0,3);
+          lcd.print(" coffee in the top  ");
+          temp=millis();
+          step=7;
+        break;
+
+        case 7:
+          if (millis()-temp > 20000)
+          {
+            step=8;
+          }
+        break;
+
+        case 8:
+          lcd.setCursor(0,2);
+          lcd.print(" Wait 1 minute more ");
+          lcd.setCursor(0,3);
+          lcd.print("                    ");
+          temp=millis();
+          step=9;
+        break;
+
+        case 9:
+          if (millis()-temp > 60000)
+          {
+            step=10;
+          }
+        break;
+
+        case 10:
+          lcd.setCursor(0,2);
+          lcd.print("        READY!      ");
+          lcd.setCursor(0,3);
+          lcd.print("Press tare to finish");
+        break;
+
       break;
     }
   }
